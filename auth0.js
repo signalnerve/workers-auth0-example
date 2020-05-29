@@ -9,6 +9,13 @@ const auth0 = {
 
 const cookieKey = 'AUTH0-AUTH'
 
+const generateStateParam = async () => {
+  const resp = await fetch('https://csprng.xyz/v1/api')
+  const { Data: state } = await resp.json()
+  await AUTH_STORE.put(`state-${state}`, true, { expirationTtl: 60 })
+  return state
+}
+
 const exchangeCode = async code => {
   const body = JSON.stringify({
     grant_type: 'authorization_code',
@@ -83,16 +90,33 @@ const persistAuth = async exchange => {
   return { headers, status: 302 }
 }
 
-const redirectUrl = `${auth0.domain}/authorize?response_type=code&client_id=${auth0.clientId}&redirect_uri=${auth0.callbackUrl}&scope=openid%20profile%20email`
+const redirectUrl = state =>
+  `${auth0.domain}/authorize?response_type=code&client_id=${
+    auth0.clientId
+  }&redirect_uri=${
+    auth0.callbackUrl
+  }&scope=openid%20profile%20email&state=${encodeURIComponent(state)}`
 const userInfoUrl = `${auth0.domain}/userInfo`
 
 export const handleRedirect = async event => {
   const url = new URL(event.request.url)
+
+  const state = url.searchParams.get('state')
+  if (!state) {
+    return null
+  }
+
+  const storedState = await AUTH_STORE.get(`state-${state}`)
+  if (!storedState) {
+    return null
+  }
+
   const code = url.searchParams.get('code')
   if (code) {
     return exchangeCode(code)
   }
-  return {}
+
+  return null
 }
 
 const verify = async event => {
@@ -133,7 +157,8 @@ export const authorize = async event => {
   if (authorization.accessToken) {
     return [true, { authorization }]
   } else {
-    return [false, { redirectUrl }]
+    const state = await generateStateParam()
+    return [false, { redirectUrl: redirectUrl(state) }]
   }
 }
 
