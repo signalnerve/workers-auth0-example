@@ -96,7 +96,6 @@ const redirectUrl = state =>
   }&redirect_uri=${
     auth0.callbackUrl
   }&scope=openid%20profile%20email&state=${encodeURIComponent(state)}`
-const userInfoUrl = `${auth0.domain}/userInfo`
 
 export const handleRedirect = async event => {
   const url = new URL(event.request.url)
@@ -139,15 +138,8 @@ const verify = async event => {
     }
 
     const { access_token: accessToken, id_token: idToken } = kvStored
-    const decoded = JSON.parse(decodeJWT(idToken))
-    const resp = await fetch(userInfoUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-    const json = await resp.json()
-    if (decoded.sub !== json.sub) {
-      throw new Error('Access token is invalid')
-    }
-    return { accessToken, idToken, userInfo: json }
+    const userInfo = JSON.parse(decodeJWT(idToken))
+    return { accessToken, idToken, userInfo }
   }
   return {}
 }
