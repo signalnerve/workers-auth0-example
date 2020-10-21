@@ -5,7 +5,7 @@
 
 ## tutorial
 
-to learn about how to build this project and explore use-cases, check out the tutorial! _coming soon_
+to learn about how to build this project and explore use-cases, [check out the tutorial!](https://developers.cloudflare.com/workers/tutorials/authorize-users-with-auth0)
 
 ## prerequisites
 
